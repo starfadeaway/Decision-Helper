@@ -4,11 +4,11 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "preview": {
-      "node": "26.5.1"
-    },
     "production": {
-      "node": "26.5.1"
+      "node": "18.17.0"
+    },
+    "preview": {
+      "node": "18.17.0"
     }
   },
   "submit": {
