@@ -1,0 +1,18 @@
+{
+  "cli": {
+    "version": ">= 21.4.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "node": "26.5.1"
+    },
+    "production": {
+      "preinstallCommand": "corepack enable && corepack prepare pnpm@9.0.0 --activate",
+      "node": "26.5.1"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

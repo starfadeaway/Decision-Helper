@@ -14,10 +14,7 @@
   },
   "dependencies": {},
   "devDependencies": {},
-  "packageManager": "pnpm@9.0.0",
-  "engines": {
-    "pnpm": ">=9.0.0"
-  },
+  "packageManager": "pnpm@11.18.0",
   "pnpm": {
     "overrides": {
       "esbuild": "0.27.2"
