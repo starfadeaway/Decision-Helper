@@ -6,7 +6,8 @@
       }
     },
     "android": {
-      "package": "io.expo.client"
+      "package": "io.expo.client",
+      "ndkVersion": "26.3.11579264"
     }
   }
 }
