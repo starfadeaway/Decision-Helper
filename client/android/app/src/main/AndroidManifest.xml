@@ -1,16 +1,65 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-  <!-- 故意不声明 android.permission.INTERNET：这个应用不联网。
-       摘掉它以后 APK 在系统层面就没有联网能力，「完全离线可用」不再只是一句说法。
-       （相册权限只需 READ_EXTERNAL_STORAGE 且限 maxSdkVersion=32：
-        Android 13+ 走系统 PhotoPicker，不需要 READ_MEDIA_IMAGES。）-->
+  <!-- ==========================================================
+       权限策略：这个应用完全离线运行，清单里不保留任何联网能力。
+       原生库会无条件带进来一批用不到的权限（Glide 的 INTERNET、
+       ShortcutBadger 的十几家厂商角标权限、firebase-messaging 的
+       c2dm/WAKE_LOCK……），这里逐条摘掉并写明理由，
+       摘完的结果可用 `aapt2 dump badging <apk>` 复核。
+
+       保留的三个权限，各有确切用途：
+         READ_EXTERNAL_STORAGE（仅 maxSdkVersion=32）—— Android 12 及以下
+           选背景图要读相册；Android 13+ 走系统 PhotoPicker，不需要权限。
+         VIBRATE —— 通知与触感反馈。
+         POST_NOTIFICATIONS —— 决策结果会弹一条本地通知，Android 13+ 需要它。
+       ========================================================== -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
-  <!-- 摘掉原生库清单里带进来、但这个应用用不到的权限：
-       CAMERA —— expo-image-picker 无条件声明，但代码只用 launchImageLibraryAsync；
-       ACCESS_NETWORK_STATE —— expo-image 声明（注释写着「picking images from camera directly」）。
-       应用不联网，所以上面也刻意没有声明 INTERNET。 -->
-  <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+  <!-- 联网能力：expo-image(Glide) 与 expo-file-system 无条件声明 INTERNET，
+       ACCESS_NETWORK_STATE 由 expo-image 声明。代码里没有任何一次网络调用
+       （全部数据落在 AsyncStorage），摘掉之后「完全离线可用」在 APK 层面可验证。 -->
+  <uses-permission android:name="android.permission.INTERNET" tools:node="remove"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove"/>
+
+  <!-- 存储：WRITE_EXTERNAL_STORAGE 由 expo-image-picker 与 expo-file-system 带进来，
+       从 Android 10 起已废弃；应用只写自己的私有目录，不需要任何外部存储权限。 -->
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
+
+  <!-- 开机自启：expo-notifications 用来在重启后重排「待触发」通知。
+       本应用只发立即触发的本地通知（trigger: null），没有待排队的通知。 -->
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove"/>
+
+  <!-- 远程推送（FCM）：由 expo-notifications 依赖的 firebase-messaging 声明。
+       工程里没有 google-services.json、没启用 google-services 插件，
+       代码也从没调用过 getExpoPushTokenAsync —— 推送链路整条不存在。 -->
+  <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove"/>
+  <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" tools:node="remove"/>
+  <uses-permission android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove"/>
+
+  <!-- 桌面图标角标：expo-notifications 依赖 ShortcutBadger 拉进来的十几家厂商私有权限。
+       代码里 shouldSetBadge: false，从不读角标数字，这批权限全部用不上。 -->
+  <uses-permission android:name="android.permission.READ_APP_BADGE" tools:node="remove"/>
+  <uses-permission android:name="com.sec.android.provider.badge.permission.READ" tools:node="remove"/>
+  <uses-permission android:name="com.sec.android.provider.badge.permission.WRITE" tools:node="remove"/>
+  <uses-permission android:name="com.htc.launcher.permission.READ_SETTINGS" tools:node="remove"/>
+  <uses-permission android:name="com.htc.launcher.permission.UPDATE_SHORTCUT" tools:node="remove"/>
+  <uses-permission android:name="com.sonyericsson.home.permission.BROADCAST_BADGE" tools:node="remove"/>
+  <uses-permission android:name="com.sonymobile.home.permission.PROVIDER_INSERT_BADGE" tools:node="remove"/>
+  <uses-permission android:name="com.anddoes.launcher.permission.UPDATE_COUNT" tools:node="remove"/>
+  <uses-permission android:name="com.majeur.launcher.permission.UPDATE_BADGE" tools:node="remove"/>
+  <uses-permission android:name="com.huawei.android.launcher.permission.CHANGE_BADGE" tools:node="remove"/>
+  <uses-permission android:name="com.huawei.android.launcher.permission.READ_SETTINGS" tools:node="remove"/>
+  <uses-permission android:name="com.huawei.android.launcher.permission.WRITE_SETTINGS" tools:node="remove"/>
+  <uses-permission android:name="com.oppo.launcher.permission.READ_SETTINGS" tools:node="remove"/>
+  <uses-permission android:name="com.oppo.launcher.permission.WRITE_SETTINGS" tools:node="remove"/>
+  <uses-permission android:name="me.everything.badger.permission.BADGE_COUNT_READ" tools:node="remove"/>
+  <uses-permission android:name="me.everything.badger.permission.BADGE_COUNT_WRITE" tools:node="remove"/>
+
+  <!-- 相机：expo-image-picker 无条件声明，但代码只用 launchImageLibraryAsync，
+       从不调 launchCameraAsync。 -->
+  <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
+
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
