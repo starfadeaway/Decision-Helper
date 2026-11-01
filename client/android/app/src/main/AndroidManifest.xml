@@ -5,6 +5,12 @@
         Android 13+ 走系统 PhotoPicker，不需要 READ_MEDIA_IMAGES。）-->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
+  <!-- 摘掉原生库清单里带进来、但这个应用用不到的权限：
+       CAMERA —— expo-image-picker 无条件声明，但代码只用 launchImageLibraryAsync；
+       ACCESS_NETWORK_STATE —— expo-image 声明（注释写着「picking images from camera directly」）。
+       应用不联网，所以上面也刻意没有声明 INTERNET。 -->
+  <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
