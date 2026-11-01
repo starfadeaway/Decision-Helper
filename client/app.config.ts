@@ -16,7 +16,7 @@ import { ExpoConfig } from 'expo/config';
  * 一旦显式钉死别的版本，本机没有对应 NDK 就会在原生构建时失败。
  */
 const config: ExpoConfig = {
-  name: '转盘决策',
+  name: '随机决策助手',
   slug: 'decision-helper',
   version: '1.0.0',
   orientation: 'portrait',
@@ -56,13 +56,13 @@ const config: ExpoConfig = {
     [
       'expo-image-picker',
       {
-        photosPermission: '允许转盘决策App访问您的相册，以便您上传或保存图片。',
+        photosPermission: '允许随机决策助手App访问您的相册，以便您上传或保存图片。',
       },
     ],
     [
       'expo-calendar',
       {
-        calendarPermission: '转盘决策App需要访问您的日历以设置备忘录提醒。',
+        calendarPermission: '随机决策助手App需要访问您的日历以设置备忘录提醒。',
       },
     ],
   ],
