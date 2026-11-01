@@ -4,6 +4,22 @@
 
 [![CI](https://github.com/starfadeaway/Decision-Helper/actions/workflows/ci.yml/badge.svg)](https://github.com/starfadeaway/Decision-Helper/actions/workflows/ci.yml)
 
+## 下载体验（Android）
+
+不想配环境的话，直接装现成的 release 构建：
+
+**→ [下载 decision-helper-v0.1.0.apk](https://github.com/starfadeaway/Decision-Helper/releases/download/v0.1.0/decision-helper-v0.1.0.apk)**　61,076,875 字节 · `arm64-v8a` / `x86_64` 双 ABI · [Release 说明与实测记录](https://github.com/starfadeaway/Decision-Helper/releases/tag/v0.1.0)
+
+```powershell
+# 校验完整性（SHA256 应为 4FA6453A…BDB9F9F）
+Get-FileHash .\decision-helper-v0.1.0.apk -Algorithm SHA256
+```
+
+- 系统要求：Android 7.0 及以上（`minSdkVersion 24` / `targetSdkVersion 36`）。
+- **请先卸载旧版本再装**：早期版本存在 Hermes 字节码版本错配（编译期 v98 / 运行时只认 v96），装上点开会闪退，本版已修复。
+- 该包用仓库内的 debug keystore 签名，便于他人复现构建与校验，**不用于生产分发**。
+- 想自己构建，见下面「构建 Android APK」。
+
 ---
 
 ## 功能
