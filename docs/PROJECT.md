@@ -47,6 +47,7 @@ client/
 │   ├── memo/                   # 备忘录列表页
 │   ├── my-decisions/           # 我的决策页（自定义决策管理）
 │   ├── memo-edit/              # 备忘录编辑页
+│   ├── appreciation/           # 关于页
 │   └── settings/               # 设置页
 │
 ├── components/                 # 可复用组件
@@ -62,10 +63,13 @@ client/
 │   ├── HistoryStats.tsx        # 历史统计图表组件
 │   ├── PagerViewWrapper.tsx      # 分页滑动容器（跨平台）
 │   ├── SwipeableTabContainer.tsx # 可滑动Tab容器
+│   ├── ColorSchemeUpdater.tsx  # 主题模式同步
+│   ├── PrettyScrollbar.tsx     # Web 端细滚动条
 │   └── Provider.tsx            # 应用Provider
 │
 ├── data/                       # 数据层
-│   └── templates.ts            # 15个预置场景模板
+│   ├── templates.ts            # 15个预置场景模板
+│   └── templates.test.ts       # 数据契约守卫（8条断言，零 mock）
 │
 ├── types/                      # 类型定义
 │   └── index.ts                # 全局类型
@@ -348,6 +352,8 @@ export async function getDecisionShareData(decisionId: string): Promise<string |
 | `@app_settings` | AppSettings | 应用设置 |
 | `@memo_tags` | string[] | 备忘录标签 |
 | `@decision_stats` | DecisionStats | 决策统计 |
+| `@wheel_appearance` | WheelAppearance | 转盘外观设置 |
+| `@onboarding_completed` | boolean | 新手引导是否已完成 |
 
 ## 类型定义
 
@@ -480,33 +486,48 @@ interface AppSettings {
 - 使用 `useFocusEffect` 在页面获得焦点时刷新数据
 - 避免在 `useEffect` 中直接获取数据
 
-### 文件上传
-- 使用 FormData 上传文件
-- 禁止使用 Base64 传递文件数据
+### 路由参数传递
+- 路由参数经 `useSafeRouter` 打包为 JSON 后 Base64 编码传递，接收端自动解码
+- 避免把长文本或特殊字符直接拼进路由路径
+
+### 本地数据
+- 全部走 AsyncStorage（见 `client/utils/storage.ts`），不引入任何网络请求
+- 新增存储 key 时同步更新 `docs/PROJECT.md` 的存储策略表
 
 ## 构建与运行
 
 ```bash
-# 安装依赖
-cd client && npx expo install
-cd server && pnpm install
+# 安装依赖（依赖只装在 client/ 下）
+npm ci --prefix client --ignore-scripts
 
-# 开发模式
-coze dev
+# 启动开发服务器（默认 http://localhost:8081）
+npm run start
 
-# 构建
-bash .cozeproj/scripts/dev_build.sh
-
-# 运行
-bash .cozeproj/scripts/dev_run.sh
+# 静态检查 / 单元测试 / Web 导出
+npm run lint
+npm run test
+npm run build
 ```
+
+### 构建 Android APK
+
+```powershell
+$env:JAVA_HOME = 'D:\jdk17'      # 需指向真实存在的 JDK 17
+cd client\android
+.\gradlew.bat --version         # 硬前置：先确认 JVM 与 Gradle 正常
+.\gradlew.bat assembleRelease   # 产物：app/build/outputs/apk/release/app-release.apk
+```
+
+> 仓库路径必须不含非 ASCII 字符：Android 原生工具链在中文路径下会因为
+> CMake 写出的预编译头文件路径编码不匹配而失败，详见 README。
 
 ## 端口配置
 
 | 服务 | 端口 |
 |------|------|
-| Expo Web 前端 | 5000 |
-| Express 后端 | 9091 |
+| Expo 开发服务器 | 8081 |
+
+本应用**没有后端服务**，也不发起任何网络请求。
 
 ## 注意事项
 
@@ -514,3 +535,4 @@ bash .cozeproj/scripts/dev_run.sh
 2. **通知推送**: `expo-notifications` 的本地通知功能需要在真机（Android/iOS）上才能正常工作
 3. **日历集成**: 需要用户授权才能创建日历事件
 4. **数据持久化**: 所有数据存储在本地，清除应用数据会丢失所有记录
+5. **音效**: 滴答声与结果音随包内置（`client/assets/sounds/`），离线可用

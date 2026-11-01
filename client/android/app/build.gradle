@@ -95,6 +95,15 @@ android {
         versionCode 1
         versionName "0.0.0"
 
+        // 摘掉各原生库清单里带进来、但这个应用用不到的权限：
+        //   CAMERA              —— expo-image-picker 无条件声明，但代码只用 launchImageLibraryAsync
+        //   ACCESS_NETWORK_STATE —— expo-image 声明（注释写着「picking images from camera directly」）
+        // 应用不联网，所以 INTERNET 也一并摘掉（见 AndroidManifest.xml 的说明）。
+        blockedPermissions += [
+                'android.permission.CAMERA',
+                'android.permission.ACCESS_NETWORK_STATE',
+        ]
+
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {

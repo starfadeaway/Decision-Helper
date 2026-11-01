@@ -1,9 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
-  <uses-permission android:name="android.permission.INTERNET"/>
+  <!-- 故意不声明 android.permission.INTERNET：这个应用不联网。
+       摘掉它以后 APK 在系统层面就没有联网能力，「完全离线可用」不再只是一句说法。
+       （相册权限只需 READ_EXTERNAL_STORAGE 且限 maxSdkVersion=32：
+        Android 13+ 走系统 PhotoPicker，不需要 READ_MEDIA_IMAGES。）-->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
-  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
