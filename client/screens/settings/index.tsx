@@ -15,13 +15,11 @@ import {
   TextInput,
   Modal,
   KeyboardAvoidingView,
+  Share,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
-import QRCode from 'react-native-qrcode-svg';
 import SvgIcon from '@/components/SvgIcon';
 import { Screen } from '@/components/Screen';
 import { clearAllData, getSettings, saveSettings } from '@/utils/storage';
@@ -154,37 +152,27 @@ export default function SettingsScreen() {
     });
   };
 
-  const handleShareQR = async () => {
+  const handleShareApp = async () => {
     setSharing(true);
     try {
-      // 使用当前应用的 URL 作为二维码内容
-      const qrContent = typeof window !== 'undefined' ? window.location.origin : 'https://example.com';
-      
+      const message =
+        '随机决策助手：转盘帮你做选择。15 个场景模板、决策历史与备忘录全部存在手机本地，不上传、不联网。';
       if (Platform.OS === 'web') {
-        // Web 端使用剪贴板复制当前应用链接
-        await Clipboard.setStringAsync(qrContent);
+        // Web 端没有系统分享面板，退回复制到剪贴板
+        await Clipboard.setStringAsync(message);
         confirm({
-          title: '链接已复制',
-          message: `应用链接已复制到剪贴板：\n${qrContent}\n\n您可以分享给朋友，让他们通过链接访问应用`,
+          title: '应用介绍已复制',
+          message: `已复制到剪贴板：\n${message}`,
           confirmText: '好的',
           cancelText: '',
         });
       } else {
-        // Native 端使用 expo-sharing 分享二维码图片
-        const qrText = `随机决策助手\n\n${qrContent}\n\n扫描二维码下载应用`;
-        const fileUri = (FileSystem as any).documentDirectory + 'qrcode.txt';
-        await (FileSystem as any).writeAsStringAsync(fileUri, qrText, {
-          encoding: (FileSystem as any).EncodingType.UTF8,
-        });
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'text/plain',
-          dialogTitle: '分享应用二维码',
-        });
+        await Share.share({ message });
       }
     } catch {
       confirm({
         title: '分享失败',
-        message: '分享二维码时发生错误',
+        message: '分享应用时发生错误',
         cancelText: '',
         confirmText: '好的',
       });
@@ -563,7 +551,7 @@ export default function SettingsScreen() {
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <TouchableOpacity
               style={styles.settingRow}
-              onPress={handleShareQR}
+              onPress={handleShareApp}
               disabled={sharing}
             >
               <View style={styles.settingLeft}>
@@ -571,9 +559,9 @@ export default function SettingsScreen() {
                   <SvgIcon name="share" size={20} color="#FF922B" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.settingLabel}>分享二维码</Text>
+                  <Text style={styles.settingLabel}>分享给朋友</Text>
                   <Text style={[styles.settingDesc, { color: colors.textSecondary }]}>
-                    {sharing ? '生成中...' : '生成二维码分享给朋友'}
+                    {sharing ? '准备中...' : '把应用介绍分享给朋友'}
                   </Text>
                 </View>
               </View>
