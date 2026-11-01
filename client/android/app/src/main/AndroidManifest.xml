@@ -6,15 +6,21 @@
        c2dm/WAKE_LOCK……），这里逐条摘掉并写明理由，
        摘完的结果可用 `aapt2 dump badging <apk>` 复核。
 
-       保留的三个权限，各有确切用途：
+       保留的五个权限，各有确切用途：
          READ_EXTERNAL_STORAGE（仅 maxSdkVersion=32）—— Android 12 及以下
            选背景图要读相册；Android 13+ 走系统 PhotoPicker，不需要权限。
          VIBRATE —— 通知与触感反馈。
          POST_NOTIFICATIONS —— 决策结果会弹一条本地通知，Android 13+ 需要它。
+         READ_CALENDAR / WRITE_CALENDAR —— 备忘录提醒要往系统日历里写事件
+           （utils/calendar.ts 调 expo-calendar）。这两条是 expo prebuild 根据
+           已安装模块自动补上的；此前那份旧清单里根本没有它们，导致备忘录提醒
+           在真机上永远拿不到授权、必然静默失败。
        ========================================================== -->
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" tools:replace="android:maxSdkVersion"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.READ_CALENDAR"/>
+  <uses-permission android:name="android.permission.WRITE_CALENDAR"/>
 
   <!-- 联网能力：expo-image(Glide) 与 expo-file-system 无条件声明 INTERNET，
        ACCESS_NETWORK_STATE 由 expo-image 声明。代码里没有任何一次网络调用
@@ -60,6 +66,16 @@
        从不调 launchCameraAsync。 -->
   <uses-permission android:name="android.permission.CAMERA" tools:node="remove"/>
 
+  <!-- 录音：expo-av 无条件声明 RECORD_AUDIO。本应用只用它播放随包内置的 mp3
+       （utils/sound.ts 的 Audio.Sound.createAsync），从不录音。expo-av 源码里
+       RECORD_AUDIO 只被录音/波形可视化那条路径用到。 -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove"/>
+
+  <!-- 音频设置：expo-av 声明 MODIFY_AUDIO_SETTINGS，但它的 Java/Kotlin 代码里
+       根本没用到这条权限（Audio.setAudioModeAsync 走的是 AudioManager 的音频
+       焦点请求），属于纯声明噪音。 -->
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" tools:node="remove"/>
+
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -72,10 +88,16 @@
     <meta-data android:name="expo.modules.updates.ENABLE_BSDIFF_PATCH_SUPPORT" android:value="true"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
     <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
-    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|assetsPaths" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true">
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|smallestScreenSize|assetsPaths" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="decisionhelper"/>
       </intent-filter>
     </activity>
   </application>

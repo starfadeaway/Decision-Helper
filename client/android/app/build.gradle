@@ -11,7 +11,23 @@ def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 react {
     entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
     reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
-    hermesCommand = new File(["node", "--print", "require.resolve('hermes-compiler/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/hermesc/%OS-BIN%/hermesc"
+    // Hermes 编译器必须和 APK 内的 Hermes 运行时（com.facebook.react:hermes-android，
+    // 随 react-native 版本一起发布）字节码版本完全一致，否则装机会秒崩：
+    //   [runtime not ready]: Compiling JS failed: Wrong bytecode version.
+    //   Expected 96 but got 98
+    //
+    // Expo 模板默认解析 npm 包 hermes-compiler。那个包独立发版，版本会跑在
+    // react-native 自带的 Hermes 前面：react-native@0.81.5 随包的是
+    // hermes-2025-07-07（字节码 v96），而 npm 上较新的 hermes-compiler
+    // （250829098.0.16）产出 v98 —— 编译期用新、运行期用旧，装的包一点就退。
+    //
+    // react-native/sdks/hermesc 是 RN 自己随包附带的编译器，与运行时同源同版本，
+    // 永远不可能错配；这也是 react-native 官方模板的默认值。
+    // 注意：这里不能用 "$reactNativeDir/..." 的写法 —— react {} 闭包里取不到
+    // reactNativeDir 这个属性，Groovy 会把 MissingPropertyException 的报错文字
+    // 原样拼进命令里，构建就会以 "cmd /c extension 'react' property ..." 失败。
+    // 所以跟上面第 13 行一样，用 node 把路径算出来。
+    hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
     codegenDir = new File(["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
 
     enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
@@ -93,7 +109,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "0.0.0"
+        versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

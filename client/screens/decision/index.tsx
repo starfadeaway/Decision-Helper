@@ -108,14 +108,26 @@ export default function DecisionScreen() {
 
     // 发送本地通知
     if (Platform.OS !== 'web') {
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title: `${name}`,
-          body: `决策结果：${result}`,
-          sound: true,
-        },
-        trigger: null, // 立即发送
-      });
+      // Android 13+ 必须先申请 POST_NOTIFICATIONS，系统否则会静默丢弃通知 ——
+      // expo-notifications 不会自动申请，而这份代码之前一次都没申请过，
+      // 结果就是真机上转完盘看不到任何通知。
+      // iOS 走同一条 API，由系统自己决定要不要再弹一次。
+      void (async () => {
+        try {
+          const { status } = await Notifications.requestPermissionsAsync();
+          if (status !== 'granted') return;
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `${name}`,
+              body: `决策结果：${result}`,
+              sound: true,
+            },
+            trigger: null, // 立即发送
+          });
+        } catch {
+          // 通知发不出去不影响决策本身
+        }
+      })();
     }
   }, [options, name, decisionId, hapticEnabled, category]);
 

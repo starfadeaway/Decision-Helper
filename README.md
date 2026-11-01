@@ -83,9 +83,15 @@ cd client\android
 
 产物：`client/android/app/build/outputs/apk/release/app-release.apk`（release 用仓库内的 debug keystore 签名，内嵌 Hermes bundle，装上就能跑，不需要连开发服务器）。
 
+这版产物在 **Android 15 模拟器（x86_64）上实测过**：冷启动不闪退、桌面图标是应用自己的图标（不是模板默认的安卓机器人）、转盘出结果后系统通知栏出现「决策结果」通知、旋转音效正常（`AudioFlinger` 有实际音频帧）。
+
+> **`client/android/` 是 `expo prebuild` 的产物，改了 `app.config.ts`（应用名 / 图标 / 启动页 / scheme / 权限）之后必须重跑一次** `npx expo prebuild --platform android`，否则原生工程与配置脱节。
+> 本项目就踩过这个坑：仓库里的 `client/android/` 一直是脚手架留下的旧 prebuild 结果，桌面上装出来是个模板默认的安卓机器人图标、`Theme.App.SplashScreen` 还停在老版本的 `parent="AppTheme"`、deep link scheme 也没进清单。重新 prebuild 之后这些才对上（prebuild 之后记得重施上面的权限收敛）。
+> 另外 prebuild 会顺手改 `client/package.json`（加 `android` / `ios` 脚本）并把 `rootProject.name` 写成中文应用名，这两处要改回去。
+
 调试用的 `assembleDebug` **不内嵌 JS bundle**，装到手机上还得连 Metro，除非另配 `adb reverse`。
 
-### 两个必须知道的坑
+### 四个必须知道的坑
 
 **1. 仓库路径必须不含非 ASCII 字符。**
 Android 的原生 C++ 工具链在中文路径下会失败：CMake 生成的预编译头文件里包含的路径按系统 ANSI 编码（中文 Windows 是 GBK）写出，而 clang 按 UTF-8 读，于是报
@@ -104,6 +110,34 @@ gradlew.bat assembleRelease
 
 **2. `gradle.properties` 里的 `-Dfile.encoding=UTF-8` 不能删。**
 Gradle 用守护进程 JVM 的默认字符集解码子进程输出（`settings.gradle` / `app/build.gradle` 里的 `node --print require.resolve(...)` 路径解析、Expo 的 autolinking 模块解析都走这条通道）。JDK 17 在中文 Windows 上默认 GBK，而 node 输出 UTF-8，路径里的中文会被打乱码，报出「Included build ... does not exist」——而那个目录其实存在。
+
+**3. Hermes 编译器必须和 APK 里的 Hermes 运行时同版本。**
+这是本项目装上就闪退的根因。`client/android/app/build.gradle` 里 `hermesCommand` 指向哪个编译器，决定了打进 APK 的 `assets/index.android.bundle` 是哪个字节码版本；而运行时 `libhermes.so` 来自 `com.facebook.react:hermes-android`，随 react-native 版本发布，**只认一个字节码版本**。两者错配的后果不是警告，而是装好点开立刻崩：
+
+```
+[runtime not ready]: Error: Compiling JS failed: Wrong bytecode version. Expected 96 but got 98
+```
+
+Expo 模板默认解析 npm 包 `hermes-compiler`。那个包独立发版，版本会跑在 react-native 自带的 Hermes 前面：`react-native@0.81.5` 随包的是 `hermes-2025-07-07`（字节码 v96），而 npm 上较新的 `hermes-compiler@250829098.0.16` 产出 v98 —— 编译期用新、运行期用旧。
+
+所以这里改成用 react-native 自己随包附带的编译器，它与运行时同源同版本，永远不会错配（这也是 react-native 官方模板的默认值）：
+
+```gradle
+hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
+```
+
+> 注意这里**不能**写成 `"$reactNativeDir/sdks/hermesc/..."`：`react {}` 闭包里取不到 `reactNativeDir` 这个属性，Groovy 会把 `MissingPropertyException` 的报错文字原样拼进命令，构建会以 `cmd /c extension 'react' property ...` 失败。
+
+改完之后 `hermes-compiler` 这个 devDependency 就没有存在意义了，已从 `client/package.json` 移除（否则以后谁再装一个新版，又会踩同一个坑）。
+
+**4. `expo prebuild` 在 CRLF 文件里会把 import 插到 `package` 之前。**
+Expo 的 `addImports` 按 `\n` 切行，再用 `/^package .*;?$/` 找 `package` 那一行。Windows 上这个文件是 CRLF，正则里的 `.` 匹配不到行尾的 `\r`，于是 `findIndex` 返回 `-1`，import 被插到**文件第一行**、也就是 `package` 声明之前 —— Kotlin 语法错误，编译直接失败：
+
+```
+e: MainActivity.kt:2:1 Syntax error: Expecting a top level declaration.
+```
+
+`expo-splash-screen` 的 config plugin 会自动往 `MainActivity.kt` 里插 `import expo.modules.splashscreen.SplashScreenManager`，所以每次 prebuild 都会撞一次。修法就是把 import 手动挪回 `package` 之后（插件只在 import 不存在时才插入，挪好之后不会再被顶回第一行）。
 
 ### 加速提示
 
@@ -126,7 +160,7 @@ gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
 
 原生库会把自己的权限无条件声明进合并清单：Glide 要 `INTERNET`，ShortcutBadger 要十几家厂商的桌面角标权限，firebase-messaging 要 `c2dm` 与 `WAKE_LOCK`……这些应用一条都用不到。`client/android/app/src/main/AndroidManifest.xml` 里用 `tools:node="remove"` 逐条摘掉，每条都写明了理由。
 
-最终 APK 只剩 4 条权限：
+最终 APK 只剩 6 条权限：
 
 ```bash
 aapt2 dump badging app-release.apk | grep uses-permission
@@ -136,6 +170,8 @@ aapt2 dump badging app-release.apk | grep uses-permission
 uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'
 uses-permission: name='android.permission.VIBRATE'
 uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.READ_CALENDAR'
+uses-permission: name='android.permission.WRITE_CALENDAR'
 uses-permission: name='io.expo.client.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 ```
 
@@ -144,9 +180,14 @@ uses-permission: name='io.expo.client.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
 | `READ_EXTERNAL_STORAGE`（仅 ≤ Android 12） | 选背景图时读相册；Android 13+ 走系统 PhotoPicker，不需要权限 |
 | `VIBRATE` | 通知与触感反馈 |
 | `POST_NOTIFICATIONS` | 决策结果弹一条本地通知（Android 13+ 需要显式授权） |
+| `READ_CALENDAR` / `WRITE_CALENDAR` | 备忘录提醒要往系统日历里写事件（`utils/calendar.ts`） |
 | `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | androidx 自带的自签名权限，保护 Android 13+ 的动态广播接收器 |
 
 `INTERNET` 不在其中 ——「完全离线可用」不是一句宣传语，装完 APK 在系统权限列表里就能自己核对。
+
+> 日历这两条是 `expo prebuild` 依据已安装模块自动补上的。上一版清单里没有它们，而代码里 `utils/calendar.ts` 一直在调 `expo-calendar` —— 权限没声明，运行时申请必然失败，备忘录提醒在真机上是一条静默失效的链路。
+>
+> 顺带摘掉的还有 `RECORD_AUDIO`（`expo-av` 无条件声明，但代码只用它播放随包内置的 mp3，录音那条路径没碰过）与 `MODIFY_AUDIO_SETTINGS`（`expo-av` 声明了却没用到，`Audio.setAudioModeAsync` 走的是 `AudioManager` 的音频焦点请求）。摘掉后实测 `AudioManager` 仍能正常拿到音频焦点，音效不受影响。
 
 ## 工程说明
 

@@ -31,6 +31,8 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
+// 保持 ASCII：Gradle 的 project name 会进各种构建产物路径和缓存键，
+// 中文名在部分 Windows 环境下会带来编码问题（这里 prebuild 会写成中文应用名）。
 rootProject.name = 'decision-helper'
 
 expoAutolinking.useExpoVersionCatalog()
