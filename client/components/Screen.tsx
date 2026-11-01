@@ -95,7 +95,11 @@ const KeyboardAwareScrollable = ({
   contentInsetBehaviorIOS,
 }: KeyboardAwareProps) => {
   // 获取原始组件的 props
-  const childAttrs = ((element as React.ReactElement).props ?? {}) as Record<string, unknown>;
+  // 用 Record<string, any> 而非 unknown：这份 props 会被转发给 ScrollView / FlatList /
+  // SectionList 三种不同组件，TS 无法证明它一定带有 FlatList 的 data/renderItem、
+  // SectionList 的 sections，也无法把 keyboardDismissMode 收窄成字面量联合类型
+  // —— 这些在运行时都来自原始元素本身，必然存在。标成 unknown 会让这三个调用全部报错。
+  const childAttrs = ((element as React.ReactElement).props ?? {}) as Record<string, any>;
   const originStyle = childAttrs['contentContainerStyle'];
   const styleArray = Array.isArray(originStyle) ? originStyle : originStyle ? [originStyle] : [];
   const merged = Object.assign({}, ...styleArray);
@@ -128,12 +132,16 @@ const KeyboardAwareScrollable = ({
     return <KeyboardAwareScrollView {...commonProps} />;
   }
 
+  // FlatList / SectionList 的必需 props（data / renderItem / sections）来自原始元素，
+  // 经 Record<string, any> 桥接后 TS 无法证明它们存在 —— 运行时它们必然存在
+  // （commonProps 就是从原始元素的 props 展开来的）。这里用 unknown 中转断言，
+  // 不改变任何运行时行为。
   if (t === FlatList) {
-    return <KeyboardAwareFlatList {...commonProps} />;
+    return <KeyboardAwareFlatList {...(commonProps as unknown as React.ComponentProps<typeof KeyboardAwareFlatList>)} />;
   }
 
   if (t === SectionList) {
-    return <KeyboardAwareSectionList {...commonProps} />;
+    return <KeyboardAwareSectionList {...(commonProps as unknown as React.ComponentProps<typeof KeyboardAwareSectionList>)} />;
   }
 
   // 理论上不应运行到这里，如果是非标准组件则原样返回，仅修改样式

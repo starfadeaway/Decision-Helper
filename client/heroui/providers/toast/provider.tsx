@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -249,7 +250,10 @@ export function ToastProvider({
   );
 
   // Keep hide ref up to date
-  hideRef.current = hide;
+  // 不在渲染期写 ref（React 官方禁止：并发渲染下 ref 可能停在未提交的值上），改在 effect 里同步
+  useEffect(() => {
+    hideRef.current = hide;
+  });
 
   /**
    * Show a toast

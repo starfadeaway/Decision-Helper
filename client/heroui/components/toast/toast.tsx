@@ -339,7 +339,7 @@ const ToastClose = forwardRef<View, ToastCloseProps>((props, ref) => {
    * If hide and id are available from context, use them to hide the toast
    * Otherwise, use the provided onPress handler
    */
-  const handlePress = (event: Parameters<NonNullable<React.ComponentProps<typeof Button>['onPress']>>[0]) => {
+  const handlePress = (event: Parameters<Extract<NonNullable<React.ComponentProps<typeof Button>['onPress']>, (...args: any[]) => any>>[0]) => {
     if (hide && id) {
       hide(id);
     }

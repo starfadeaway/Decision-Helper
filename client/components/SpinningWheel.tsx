@@ -80,17 +80,36 @@ export default function SpinningWheel({
   const [isSpinning, setIsSpinning] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  // 「进入旋转中」是 spinTrigger 变化的**派生状态**，用 React 官方推荐的
+  // 「渲染期比对上一次的值并同步修正 state」写法，而不是在 effect 里 setState
+  // （后者会触发级联渲染，被 react-hooks/set-state-in-effect 规则拦下）。
+  // spinTrigger 由父组件单调递增（0 → 1 → 2 …，从不会回退），故以它为基准比对；
+  // 父组件固定以 0 挂载，因此不会出现「挂载即旋转」的边界。
+  const [lastSpinTrigger, setLastSpinTrigger] = useState(spinTrigger);
+  if (spinTrigger !== lastSpinTrigger) {
+    setLastSpinTrigger(spinTrigger);
+    // 与旋转 effect 的守卫保持一致：trigger 为 0（未触发）或选项不足 2 个时不进入旋转
+    if (spinTrigger !== 0 && options.length >= 2) {
+      setIsSpinning(true);
+    }
+  }
+
   // ---- Refs ----
   // 记录上一次动画结束后的目标角度（mod 360），作为下次旋转的基准
   const lastTargetRef = useRef(0);
 
   // ---- Callbacks (stable wrappers for runOnJS) ----
+  // 不在渲染期写 ref（React 官方禁止：并发渲染下 ref 可能停在未提交的 callback 上）。
+  // 改为在 effect 里同步 —— 该 effect 声明在旋转 effect 之前，
+  // 因此「触发旋转的那一次 commit」里，worklet 经 runOnJS 拿到的必是最新 callback。
   const spinEndRef = useRef(onSpinEnd);
-  spinEndRef.current = onSpinEnd;
   const spinStartRef = useRef(onSpinStart);
-  spinStartRef.current = onSpinStart;
   const spinningChangeRef = useRef(onSpinningChange);
-  spinningChangeRef.current = onSpinningChange;
+  useEffect(() => {
+    spinEndRef.current = onSpinEnd;
+    spinStartRef.current = onSpinStart;
+    spinningChangeRef.current = onSpinningChange;
+  });
 
   const handleEnd = (idx: number) => spinEndRef.current(idx);
   const handleStart = () => spinStartRef.current?.();
@@ -151,8 +170,7 @@ export default function SpinningWheel({
     const newTarget = lastTargetRef.current + totalDelta;
     lastTargetRef.current = newTarget;
 
-    // 9. 通知开始
-    setIsSpinning(true);
+    // 9. 通知开始（isSpinning 已在渲染期随 spinTrigger 变化同步置位）
     handleSpinningChange(true);
     handleStart();
 

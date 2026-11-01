@@ -1,0 +1,58 @@
+# 质量门禁：类型检查 + ESLint + 单元测试 + Web 导出构建
+#
+# 三个门禁各自对应不同的失败原因，不要为了「让它变绿」而放宽任何一个：
+#   lint  → 类型错误 / 规则违反（含 vendored heroui 的类型补丁）
+#   test  → 预置模板的数据契约被改坏
+#   build → 打包期才暴露的问题（缺模块、资源路径错、别名解析失败）
+#
+# 说明：
+# - 所有步骤都在 client/ 下执行。根 package.json 只是脚本转发层，没有依赖。
+# - 固定 Node 20（与 eas.json 的 20.18.0 一致，Expo SDK 54 官方支持的 LTS）。
+# - --ignore-scripts：client 的 postinstall 会跑 `npx depcheck` 自动装依赖，
+#   在 CI 里既慢又不可控，依赖固定交给 package-lock.json。
+# - registry 显式指向 npmjs.org：仓库里的 .npmrc 指向 npmmirror（本地国内加速用），
+#   但 GitHub Actions 跑在美国机房，走官方源更稳。
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint / test / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --registry=https://registry.npmjs.org
+
+      - name: Type check + lint
+        run: npm run lint
+
+      - name: Unit test
+        run: npm test -- --ci
+
+      - name: Build (expo export --platform web)
+        run: npm run build

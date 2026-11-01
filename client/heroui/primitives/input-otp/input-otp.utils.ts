@@ -23,7 +23,7 @@ export const REGEXP_ONLY_DIGITS_AND_CHARS = '^[a-zA-Z0-9]+$';
 export function defaultPasteTransformer(maxLength: number) {
   return (pasted: string): string => {
     // Match exactly maxLength digits, not preceded or followed by another digit
-    // eslint-disable-next-line @coze-arch/no-regexp-lookbehind -- Expo/React Native template, runs on Hermes (supports lookbehind)
+    // 用 lookbehind 保证前后都不是数字；Hermes 支持 lookbehind
     const otpRegex = new RegExp(`(?<!\\d)(\\d{${maxLength}})(?!\\d)`);
     const match = pasted.match(otpRegex);
 

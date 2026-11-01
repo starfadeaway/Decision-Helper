@@ -107,8 +107,12 @@ function useUncontrolledState<T>({
 /**
  * A custom hook that converts a callback to a ref to avoid triggering re-renders when passed as a
  * prop or avoid re-executing effects when passed as a dependency
+ *
+ * 约束用 `any[]` 而非 `unknown[]`：`unknown` 在逆变位置不可赋给泛型 `T`，
+ * 会让 `(state: T) => void` 这类回调无法通过约束检查（TS2345）。
+ * 与上游 Radix Primitives 的写法保持一致。
  */
-function useCallbackRef<T extends (...args: unknown[]) => unknown>(
+function useCallbackRef<T extends (...args: any[]) => any>(
   callback: T | undefined
 ): T {
   const callbackRef = useRef(callback);
