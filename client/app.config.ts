@@ -55,20 +55,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         }
       ],
       [
-        "expo-location",
-        {
-          "locationWhenInUsePermission": `转盘决策App需要访问您的位置以提供周边服务及导航功能。`
-        }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": `转盘决策App需要访问相机以拍摄照片和视频。`,
-          "microphonePermission": `转盘决策App需要访问麦克风以录制视频声音。`,
-          "recordAudioAndroid": true
-        }
-      ],
-      [
         "expo-calendar",
         {
           "calendarPermission": `转盘决策App需要访问您的日历以设置备忘录提醒。`

@@ -1,6 +1,6 @@
 /**
  * 随机决策助手 - 15 个预置场景模板
- * 饮食 4 个、生活日常 4 个、休闲娱乐 3 个、学习工作 2 个、聚会游戏 2 个
+ * 饮食 3 个、生活日常 4 个、休闲娱乐 3 个、学习工作 2 个、聚会游戏 3 个
  */
 import type { DecisionItem } from '@/types';
 
@@ -180,9 +180,4 @@ export function getTemplatesByCategory(): Record<string, DecisionItem[]> {
     result[template.category].push(template);
   }
   return result;
-}
-
-/** 根据 ID 获取预置模板 */
-export function getPresetById(id: string): DecisionItem | undefined {
-  return PRESET_TEMPLATES.find((t) => t.id === id);
 }

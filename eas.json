@@ -5,10 +5,10 @@
   },
   "build": {
     "production": {
-      "node": "18.17.0"
+      "node": "20.18.0"
     },
     "preview": {
-      "node": "18.17.0"
+      "node": "20.18.0"
     }
   },
   "submit": {
