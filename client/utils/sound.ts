@@ -51,18 +51,18 @@ async function initNativeAudio() {
  */
 async function loadNativeSounds() {
   if (Platform.OS === 'web') return;
-  
+
   try {
-    // 使用系统音效或简单的提示音
-    // 这里使用一个简短的提示音 URL
+    // 音效随包内置：require 打包资源，打进 APK，不依赖任何网络请求。
+    // （原来这里指向 mixkit.co 的远程 URL，首次播放要联网，且离线时直接哑掉。）
     const { sound: tick } = await Audio.Sound.createAsync(
-      { uri: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' },
+      require('@/assets/sounds/tick.mp3'),
       { shouldPlay: false, volume: 0.3 }
     );
     tickSound = tick;
-    
+
     const { sound: result } = await Audio.Sound.createAsync(
-      { uri: 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3' },
+      require('@/assets/sounds/result.mp3'),
       { shouldPlay: false, volume: 0.5 }
     );
     resultSound = result;
