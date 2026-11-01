@@ -35,7 +35,7 @@ client/
 │   ├── decision.tsx            # 决策页路由
 │   ├── edit.tsx                # 编辑页路由
 │   ├── memo-edit.tsx           # 备忘录编辑页路由
-│   ├── appreciation.tsx        # 关于页路由
+│   ├── appreciation.tsx        # 赞赏页路由
 │   └── my-decisions.tsx        # 我的决策页路由
 │
 ├── screens/                    # 页面实现目录
@@ -47,7 +47,7 @@ client/
 │   ├── memo/                   # 备忘录列表页
 │   ├── my-decisions/           # 我的决策页（自定义决策管理）
 │   ├── memo-edit/              # 备忘录编辑页
-│   ├── appreciation/           # 关于页
+│   ├── appreciation/           # 赞赏页
 │   └── settings/               # 设置页
 │
 ├── components/                 # 可复用组件

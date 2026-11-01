@@ -31,7 +31,7 @@ client/                             # Expo 应用根（package.json + app.config
 │   ├── edit.tsx                  # 决策编辑页 → screens/edit
 │   ├── memo-edit.tsx             # 备忘编辑页 → screens/memo-edit
 │   ├── my-decisions.tsx          # 我的决策 → screens/my-decisions
-│   ├── appreciation.tsx          # 关于 → screens/appreciation
+│   ├── appreciation.tsx          # 赞赏 → screens/appreciation
 │   └── +not-found.tsx            # 404 页面
 ├── screens/                      # 页面实现目录（与 app/ 路由一一对应）
 │   ├── home/index.tsx            # 首页（场景列表）
@@ -43,7 +43,7 @@ client/                             # Expo 应用根（package.json + app.config
 │   ├── history/index.tsx         # 历史记录页
 │   ├── my-decisions/index.tsx    # 我的决策
 │   ├── settings/index.tsx        # 设置页
-│   └── appreciation/index.tsx    # 关于
+│   └── appreciation/index.tsx    # 赞赏
 ├── components/                   # 可复用组件
 │   ├── SpinningWheel.tsx         # 转盘组件（核心）
 │   ├── Screen.tsx                # 页面容器组件

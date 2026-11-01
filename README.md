@@ -120,7 +120,33 @@ gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
 - 代码里没有任何 `fetch` / `axios` / `XMLHttpRequest` 请求，没有后端服务，没有 API 密钥。
 - 所有数据存在设备本地（AsyncStorage）：自定义决策、历史记录、备忘录、设置与统计。
 - **音效随包内置**（`client/assets/sounds/` 下的两个 mp3），不打网络请求，离线时正常播放。
-- 应用申请的唯一权限是**相册读取**（用于导入数据时的图片选择）；不申请相机、麦克风、位置权限。
+- **安装包里没有联网权限** —— 见下面「权限」一节，这条可以用 `aapt2` 直接复核。
+
+## 权限
+
+原生库会把自己的权限无条件声明进合并清单：Glide 要 `INTERNET`，ShortcutBadger 要十几家厂商的桌面角标权限，firebase-messaging 要 `c2dm` 与 `WAKE_LOCK`……这些应用一条都用不到。`client/android/app/src/main/AndroidManifest.xml` 里用 `tools:node="remove"` 逐条摘掉，每条都写明了理由。
+
+最终 APK 只剩 4 条权限：
+
+```bash
+aapt2 dump badging app-release.apk | grep uses-permission
+```
+
+```
+uses-permission: name='android.permission.READ_EXTERNAL_STORAGE' maxSdkVersion='32'
+uses-permission: name='android.permission.VIBRATE'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='io.expo.client.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'
+```
+
+| 权限 | 用途 |
+|---|---|
+| `READ_EXTERNAL_STORAGE`（仅 ≤ Android 12） | 选背景图时读相册；Android 13+ 走系统 PhotoPicker，不需要权限 |
+| `VIBRATE` | 通知与触感反馈 |
+| `POST_NOTIFICATIONS` | 决策结果弹一条本地通知（Android 13+ 需要显式授权） |
+| `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | androidx 自带的自签名权限，保护 Android 13+ 的动态广播接收器 |
+
+`INTERNET` 不在其中 ——「完全离线可用」不是一句宣传语，装完 APK 在系统权限列表里就能自己核对。
 
 ## 工程说明
 
@@ -128,8 +154,8 @@ gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
 
 | | |
 |---|---|
-| 手写代码 | 49 个文件 / **10,842 行**（`app` `screens` `components` `contexts` `hooks` `utils` `data`） |
-| 其中页面层 | `screens/` 10 个页面 / 6,125 行 |
+| 手写代码 | 49 个文件 / **10,830 行**（`app` `screens` `components` `contexts` `hooks` `utils` `data`） |
+| 其中页面层 | `screens/` 10 个页面 / 6,113 行 |
 | vendored 组件库 | `client/heroui/` 375 个文件 / 39,247 行（第三方，非手写） |
 
 > 行数口径：按文件实际行数统计（含空行），不含 `client/heroui/`。
@@ -157,7 +183,7 @@ Decision-Helper/
 └── .npmrc                      # npm 配置（registry 指向国内镜像）
 ```
 
-路由与页面的对应关系：`app/` 下只放路由配置，真正的页面实现在 `screens/`。当前共 10 个功能路由，其中 **8 个核心页面**（首页、发现、历史、备忘、设置、决策、我的决策、关于），另有 2 个编辑二级页（编辑决策、编辑备忘）。
+路由与页面的对应关系：`app/` 下只放路由配置，真正的页面实现在 `screens/`。当前共 10 个功能路由，其中 **8 个核心页面**：底部 5 个 tab（决策 / 全部 / 备忘录 / 历史 / 设置）加 3 个独立页（决策结果 / 我的决策 / 赞赏支持），另有 2 个编辑二级页（编辑决策 / 编辑备忘录）。
 
 ## 素材与许可
 
