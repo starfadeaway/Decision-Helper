@@ -12,7 +12,6 @@ __pycache__/
 *.egg-info/
 /.env
 .env
-.cozeproj/reduction
 
 # JS/TS bundlers & build outputs
 .next

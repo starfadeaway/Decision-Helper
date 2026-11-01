@@ -1,7 +1,7 @@
 import { useEffect, ReactNode } from 'react';
 import { Platform } from 'react-native';
 
-const STYLE_ID = 'coze-pretty-scrollbar';
+const STYLE_ID = 'decision-helper-pretty-scrollbar';
 
 function WebOnlyPrettyScrollbar({ children }: { children: ReactNode }) {
   useEffect(() => {

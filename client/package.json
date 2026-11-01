@@ -6,7 +6,7 @@
   "scripts": {
     "check-deps": "npx depcheck",
     "typecheck": "tsc --noEmit",
-    "lint": "npm run typecheck && eslint ./ -f ./scripts/formatter.mjs --quiet",
+    "lint": "npm run typecheck && eslint ./ -f ./scripts/stylish-formatter.mjs --quiet",
     "start": "expo start --web --clear",
     "build": "expo export --platform web",
     "test": "jest --watchAll=false"
@@ -77,7 +77,6 @@
     "@types/jest": "^29.5.12",
     "@types/react": "~19.1.0",
     "@types/react-test-renderer": "19.1.0",
-    "axios": "^1.13.6",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "^54.0.9",
     "chalk": "^4.1.2",
@@ -85,7 +84,6 @@
     "depcheck": "^1.4.7",
     "esbuild": "0.27.2",
     "eslint": "^9.39.2",
-    "eslint-formatter-compact": "^9.0.1",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react": "^7.37.5",

@@ -118,8 +118,7 @@ export default [
       "scripts/**/*.js",
       "expo/scripts/**/*.js",
       "eslint.config.js",
-      "babel.config.js",
-      "server/**/*.js"
+      "babel.config.js"
     ],
     languageOptions: {
       globals: {
