@@ -1,261 +1,166 @@
-# Expo App + Express.js
+# 随机决策助手 · Decision Helper
 
-## 目录结构规范（严格遵循）
+> 一个**纯本地、完全离线**的 React Native 随机决策工具：转盘帮你做选择，决策历史、自定义项与备忘录全部留在手机本地，不上传、不联网。
 
-当前仓库是一个 monorepo（基于 pnpm 的 workspace）
+[![CI](https://github.com/starfadeaway/Decision-Helper/actions/workflows/ci.yml/badge.svg)](https://github.com/starfadeaway/Decision-Helper/actions/workflows/ci.yml)
 
-- Expo 代码在 client 目录，Express.js 代码在 server 目录
-- 本模板默认无 Tab Bar，可按需改造
+---
 
-├── client/                     # React Native 前端代码
-│   ├── app/                    # Expo Router 路由目录（仅路由配置）
-│   │   ├── _layout.tsx         # 根布局文件（必需，务必阅读）
-│   │   └── index.tsx           # 首页
-│   ├── screens/                # 页面实现目录（与 app/ 路由对应）
-│   │   └── demo/               # 示例页面
-│   │       └── index.tsx
-│   ├── components/             # 可复用组件
-│   │   └── Screen.tsx          # 页面容器组件（必用）
+## 功能
+
+- **转盘决策**：扇区式转盘，支持权重随机；旋转过程中有随进度渐变的滴答音效与触感反馈，落定后有结果提示音。
+- **预置场景模板**：15 个模板覆盖 5 个分类（饮食 3 / 生活日常 4 / 休闲娱乐 3 / 学习工作 2 / 聚会游戏 3），其中 4 个高频模板置顶快捷区。
+- **自定义决策**：自建选项、编辑、置顶、删除。
+- **决策历史与统计**：记录每次结果并按分类统计。
+- **备忘录**：带标签的备忘，支持提醒。
+- **数据导入导出**：本地文件导入 / 导出，方便换机。
+- **深浅色主题**：跟随系统或手动切换，6 套配色。
+
+## 技术栈
+
+| | |
+|---|---|
+| 框架 | Expo SDK 54.0.33 · React Native 0.81.5（New Architecture 开启）· React 19.1.0 |
+| 语言 | TypeScript 5.8（`strict: true`） |
+| 路由 | expo-router（文件式路由） |
+| 样式 | Tailwind CSS 4 + Uniwind |
+| 状态 / 存储 | React Context + AsyncStorage（**无后端、无网络请求**） |
+| 原生模块 | expo-av / expo-haptics / expo-calendar / expo-image-picker / expo-sharing / expo-clipboard / expo-notifications |
+| 动画 | react-native-reanimated 4 + react-native-worklets |
+| 引擎 | Hermes（release 构建编译为 Hermes 字节码） |
+| 打包 | Gradle 8.13 · AGP 8.13 · NDK 27.1.12297006 · compileSdk 36 / minSdk 24 |
+
+## 快速开始
+
+前置：**Node.js 20+**、npm 10+。
+
+```bash
+# 1. 安装依赖（依赖只装在 client/ 下）
+npm ci --prefix client --ignore-scripts
+
+# 2. 启动开发服务器（默认 http://localhost:8081）
+npm run start
+```
+
+根目录的 `package.json` 只是脚本转发层，四个命令都可以在根目录直接用：
+
+```bash
+npm run lint     # tsc --noEmit + ESLint（--quiet，只看 error）
+npm run test     # jest（数据契约守卫）
+npm run build    # expo export --platform web，产物在 client/dist/
+```
+
+也可以进 `client/` 里跑同名脚本，行为一致。
+
+> `--ignore-scripts` 是有意为之：client 原本带一个 `postinstall` 会跑 `npx depcheck` 并自动改依赖树，在 CI 里既慢又不可控。依赖版本由 `client/package-lock.json` 固定。
+
+## 质量门禁
+
+CI（`.github/workflows/ci.yml`）跑在 Node 20 上，三道门禁缺一不可：
+
+| 门禁 | 命令 | 拦什么 |
+|---|---|---|
+| 类型 + 规范 | `npm run lint` | 类型错误、ESLint 规则违反 |
+| 单元测试 | `npm test -- --ci` | 预置模板的数据契约被改坏 |
+| 构建 | `npm run build` | 只在打包期暴露的问题（缺模块、资源路径错、别名解析失败） |
+
+单元测试目前覆盖 `client/data/templates.ts` 的数据契约：模板总数、id 唯一性、字段完整性、选项数量下限，以及**写死的分类分布**——最后这条专门用来拦「文件头注释与真实数据分叉」这类错误。
+
+## 构建 Android APK
+
+前置条件：
+
+- **JDK 17**（本机用的是 `D:\jdk17`，Temurin 17.0.19）
+- **Android SDK**，且已安装 platform 36 / build-tools 36.0.0 / NDK 27.1.12297006
+- 环境变量 `ANDROID_HOME` 指向 SDK 目录
+
+```powershell
+$env:JAVA_HOME = 'D:\jdk17'          # 必须指向真实存在的 JDK 目录
+cd client\android
+.\gradlew.bat --version               # 硬前置：先确认 JVM 与 Gradle 正常
+.\gradlew.bat assembleRelease         # 产出可独立安装运行的 release APK
+```
+
+产物：`client/android/app/build/outputs/apk/release/app-release.apk`（release 用仓库内的 debug keystore 签名，内嵌 Hermes bundle，装上就能跑，不需要连开发服务器）。
+
+调试用的 `assembleDebug` **不内嵌 JS bundle**，装到手机上还得连 Metro，除非另配 `adb reverse`。
+
+### 两个必须知道的坑
+
+**1. 仓库路径必须不含非 ASCII 字符。**
+Android 的原生 C++ 工具链在中文路径下会失败：CMake 生成的预编译头文件里包含的路径按系统 ANSI 编码（中文 Windows 是 GBK）写出，而 clang 按 UTF-8 读，于是报
+
+```
+fatal error: cannot open file '.../ExpoHeader.pch': unspecified system_category error
+```
+
+这不是能靠配置绕过的（`android.overridePathCheck=true` 只是让 AGP 不再拒绝非 ASCII 路径，编码问题依旧）。把仓库放到纯英文路径下构建即可，例如：
+
+```bash
+git clone https://github.com/starfadeaway/Decision-Helper.git C:/build/Decision-Helper
+cd C:/build/Decision-Helper/client/android
+gradlew.bat assembleRelease
+```
+
+**2. `gradle.properties` 里的 `-Dfile.encoding=UTF-8` 不能删。**
+Gradle 用守护进程 JVM 的默认字符集解码子进程输出（`settings.gradle` / `app/build.gradle` 里的 `node --print require.resolve(...)` 路径解析、Expo 的 autolinking 模块解析都走这条通道）。JDK 17 在中文 Windows 上默认 GBK，而 node 输出 UTF-8，路径里的中文会被打乱码，报出「Included build ... does not exist」——而那个目录其实存在。
+
+### 加速提示
+
+默认会为 4 个 ABI（`armeabi-v7a, arm64-v8a, x86, x86_64`）编译原生代码。本地只做真机调试时可以只编一个：
+
+```bash
+gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
+```
+
+## 离线边界
+
+这个应用**不联网**，说清楚具体指什么：
+
+- 代码里没有任何 `fetch` / `axios` / `XMLHttpRequest` 请求，没有后端服务，没有 API 密钥。
+- 所有数据存在设备本地（AsyncStorage）：自定义决策、历史记录、备忘录、设置与统计。
+- **音效随包内置**（`client/assets/sounds/` 下的两个 mp3），不打网络请求，离线时正常播放。
+- 应用申请的唯一权限是**相册读取**（用于导入数据时的图片选择）；不申请相机、麦克风、位置权限。
+
+## 工程说明
+
+这套工程的脚手架来自 Coze 的 React Native / Expo 模板（`client/heroui/` 是 vendored 的 HeroUI 组件库，`eslint-plugins/` 是脚手架自带的规则集）。模板负责的是脚手架与组件底座；**业务代码、页面实现、交互与视觉均为手写**：
+
+| | |
+|---|---|
+| 手写代码 | 49 个文件 / **10,842 行**（`app` `screens` `components` `contexts` `hooks` `utils` `data`） |
+| 其中页面层 | `screens/` 10 个页面 / 6,125 行 |
+| vendored 组件库 | `client/heroui/` 375 个文件 / 39,247 行（第三方，非手写） |
+
+> 行数口径：按文件实际行数统计（含空行），不含 `client/heroui/`。
+
+## 目录结构
+
+```
+Decision-Helper/
+├── client/                     # Expo 应用根（package.json + app.config.ts 都在这里）
+│   ├── app/                    # expo-router 路由（10 个功能路由 + 2 个布局 + 404）
+│   ├── screens/                # 页面实现（与 app/ 路由一一对应）
+│   ├── components/             # 可复用组件（转盘、页面容器、图标等）
+│   ├── contexts/               # React Context（主题、引导）
 │   ├── hooks/                  # 自定义 Hooks
-│   ├── contexts/               # React Context 代码
-│   ├── utils/                  # 工具函数
-│   ├── assets/                 # 静态资源
-|   └── package.json            # Expo 应用 package.json
-├── server/                     # 服务端代码根目录 (Express.js)
-|   ├── src/
-│   │   └── index.ts            # 服务端入口文件
-|   └── package.json            # 服务端 package.json
-├── package.json
-├── .cozeproj                   # 预置脚手架脚本（禁止修改）
-└── .coze                       # 配置文件（禁止修改）
-
-## 样式方案
-
-基于 tailwindcss 进行样式开发（底层基于 Uniwind）
-
-写法示例：
-
-```tsx
-<View className="flex-1 bg-white dark:bg-gray-900 p-4"></View>
+│   ├── utils/                  # 存储、音效、日历、导入导出
+│   ├── data/                   # 预置模板数据 + 数据契约测试
+│   ├── assets/                 # 图片 / 字体 / 音效
+│   ├── android/                # 原生工程（已入库，prebuild 产物）
+│   ├── heroui/                 # vendored HeroUI 组件库
+│   ├── app.config.ts           # 应用配置（唯一口径源）
+│   └── package.json            # 依赖与脚本
+├── eslint-plugins/             # 脚手架自带的 ESLint 规则集（6 个插件）
+├── .github/workflows/ci.yml    # 质量门禁
+├── package.json                # 脚本转发层
+└── .npmrc                      # npm 配置（registry 指向国内镜像）
 ```
 
-```tsx
-<Text
-  className="text-lg font-bold text-gray-900 dark:text-white"
-  selectionColorClassName="accent-blue-500"
->
-  Hello World
-</Text>
-```
+路由与页面的对应关系：`app/` 下只放路由配置，真正的页面实现在 `screens/`。当前共 10 个功能路由，其中 **8 个核心页面**（首页、发现、历史、备忘、设置、决策、我的决策、关于），另有 2 个编辑二级页（编辑决策、编辑备忘）。
 
-Uniwind 官方文档：https://docs.uniwind.dev/llms.txt
+## 素材与许可
 
-## 如何进行静态校验（TSC + ESLint）
-
-```bash
-# 对 client 和 server 目录同时进行校验
-pnpm -w lint:all
-
-# 对 client 目录进行校验
-pnpm -w lint:client
-
-# 对 server 目录进行校验
-pnpm -w lint:server
-```
-
-## 如何修改主题模式（跟随系统、固定暗色、固定亮色）
-
-默认为跟随系统，如果用户明确指定为“暗色”或“亮色”，需要修改 `client/components/ColorSchemeUpdater.tsx` 的 `DEFAULT_THEME` 变量为合适的值
-
-## 如何定制主题 design tokens
-
-当前项目的**设计系统**基于 tailwindcss 实现，核心入口文件为 `client/global.css`，如果需要定制主题，应该**阅读并修改 `client/global.css` 文件**
-
-## 路由及 Tab Bar 实现规范
-
-### 方案一：无 Tab Bar（Stack 导航）
-
-适用于线性流程应用，采用简化的目录结构：
-
-```
-client/app/
-├── _layout.tsx         # 根布局（Stack 导航配置）
-├── index.tsx           # 应用入口
-├── detail.tsx          # 详情页（通过 params 传递数据）
-└── +not-found.tsx      # 404 页面
-```
-
-**根布局配置** `client/app/_layout.tsx`：
-
-以下仅为代码片段供写法参考
-
-```tsx
-<Stack screenOptions={{ headerShown: false }}>
-  <Stack.Screen name="index" />
-  <Stack.Screen name="detail" />
-</Stack>
-```
-
-**应用入口** `client/app/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-> **禁止事项**：无 Tab Bar 场景下，不得创建 `(tabs)` 目录。
-
-### 方案二：有 Tab Bar（Tabs 导航）
-
-采用路由分组实现底部导航栏：
-```
-client/app/
-├── _layout.tsx              # 根布局
-├── (tabs)/
-│   ├── _layout.tsx          # Tab 导航配置
-│   ├── index.tsx            # 默认 Tab（必须存在）
-│   ├── discover.tsx         # 发现页
-│   └── profile.tsx          # 个人中心
-├── detail.tsx               # Tab 外的独立页面（通过 params 传递数据）
-└── +not-found.tsx
-```
-> **⚠️ [CRITICAL]**： `app/index.tsx` 优先级高于 `(tabs)/index.tsx`，会导致首页无 Tab Bar。**当有(tabs)/index.tsx时必须删除 `app/index.tsx`**。
-
-**根布局配置** `client/app/_layout.tsx`：
-
-以下仅为代码片段供写法参考
-
-```tsx
-<Stack screenOptions={{ headerShown: false }}>
-  <Stack.Screen name="(tabs)" />
-  <Stack.Screen name="detail" />
-</Stack>
-```
-
-**应用入口** `client/app/(tabs)/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-
-**Tab 布局配置** `client/app/(tabs)/_layout.tsx`：
-
-```tsx
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FontAwesome6 } from '@expo/vector-icons';
-import { useCSSVariable } from 'uniwind';
-
-export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const [background, muted, accent, border] = useCSSVariable([
-    '--color-background',
-    '--color-muted',
-    '--color-accent',
-    '--color-border',
-  ]) as string[];
-
-  let tabBarStyle = {
-    backgroundColor: background,
-    borderTopWidth: 1,
-    borderTopColor: border,
-  };
-
-  // 用于修复 Web 上高度异常的问题（这个 if 逻辑必须添加）
-  if (Platform.OS === 'web') {
-    tabBarStyle = {
-      ...tabBarStyle,
-      height: 'auto',
-    }
-  }
-
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-      }}
-    >
-      {/* name 必须与文件名完全一致 */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: '首页',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="house" size={20} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{
-          title: '发现',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="compass" size={20} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: '我的',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="user" size={20} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
-}
-```
-
-**Tab 页面文件** `client/app/(tabs)/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-
-### 注意事项
-
-在改动 `client/app/_layout.tsx` 前，必须先阅读该文件，再进行修改操作
-
-以下是需要保留的重要逻辑
-
-- 保留 global.css 引入（tailwindcss 生效的关键）
-- 保留 Provider 的使用
-
-## 依赖管理与模块导入规范
-
-### 依赖安装
-**禁止**使用 `npm` 或 `yarn`，按目录区分安装命令：
-
-| 目录 | 安装命令 | 说明 |
-|------|----------|------|
-| `client/` | `npx expo install <package>` | Expo 会自动选择与 SDK 兼容的版本 |
-| `server/` | `pnpm add <package>` | 使用 pnpm 管理后端依赖 |
-
-```bash
-# client 目录（Expo 项目）
-cd client && npx expo install expo-camera expo-image-picker
-
-# server 目录（Express 项目）
-cd server && pnpm add axios cors
-```
-
-**网络问题处理**：`npx expo install` 可能因网络原因失败，失败时重试 2 次，仍失败则改用 `pnpm add` 安装
-
-## Expo 开发规范
-
-### 路径别名
-
-Expo 配置了 `@/` 路径别名指向 `client/` 目录：
-
-```tsx
-// 正确
-import { Screen } from '@/components/Screen';
-
-// 避免相对路径
-import { Screen } from '../../../components/Screen';
-```
-
-## 本地开发
-
-`coze dev`：用来首次启动前后端服务，也可以用来重启前后端服务（该命令会先尝试杀掉占用端口的进程，再启动服务）
+- **音效**：滴答声与结果提示音来自 [Mixkit](https://mixkit.co/free-sound-effects/)（Free License，允许商用、无需署名），已作为 mp3 随包内置于 `client/assets/sounds/`。
+- **组件库**：`client/heroui/` 为 vendored 的 HeroUI，遵循其上游许可证。
+- **图标与图片**：仓库内 `client/assets/images/`。

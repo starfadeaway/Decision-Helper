@@ -35,6 +35,7 @@ client/
 │   ├── decision.tsx            # 决策页路由
 │   ├── edit.tsx                # 编辑页路由
 │   ├── memo-edit.tsx           # 备忘录编辑页路由
+│   ├── appreciation.tsx        # 关于页路由
 │   └── my-decisions.tsx        # 我的决策页路由
 │
 ├── screens/                    # 页面实现目录

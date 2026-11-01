@@ -17,32 +17,54 @@
 ## 项目目录结构
 
 ```
-client/
-├── app/                          # Expo Router 路由目录
+client/                             # Expo 应用根（package.json + app.config.ts 都在这里）
+├── app/                          # Expo Router 路由目录（只放路由配置）
 │   ├── _layout.tsx               # 根布局（Stack 导航）
-│   ├── index.tsx                 # 首页路由 → screens/home
-│   ├── decision.tsx              # 决策执行页路由 → screens/decision
-│   ├── edit.tsx                  # 选项编辑页路由 → screens/edit
-│   ├── history.tsx               # 历史记录页路由 → screens/history
-│   ├── settings.tsx              # 设置页路由 → screens/settings
+│   ├── (tabs)/                   # 底部 Tab 分组（5 个 Tab）
+│   │   ├── _layout.tsx           # Tab 导航配置
+│   │   ├── index.tsx             # 首页 → screens/home
+│   │   ├── explore.tsx           # 发现 → screens/explore
+│   │   ├── history.tsx           # 历史 → screens/history
+│   │   ├── memo.tsx              # 备忘 → screens/memo
+│   │   └── settings.tsx          # 设置 → screens/settings
+│   ├── decision.tsx              # 决策执行页 → screens/decision
+│   ├── edit.tsx                  # 决策编辑页 → screens/edit
+│   ├── memo-edit.tsx             # 备忘编辑页 → screens/memo-edit
+│   ├── my-decisions.tsx          # 我的决策 → screens/my-decisions
+│   ├── appreciation.tsx          # 关于 → screens/appreciation
 │   └── +not-found.tsx            # 404 页面
-├── screens/                      # 页面实现目录
+├── screens/                      # 页面实现目录（与 app/ 路由一一对应）
 │   ├── home/index.tsx            # 首页（场景列表）
+│   ├── explore/index.tsx         # 发现（预设模板浏览）
 │   ├── decision/index.tsx        # 决策执行页（转盘交互）
-│   ├── edit/index.tsx            # 选项编辑页
+│   ├── edit/index.tsx            # 决策编辑页
+│   ├── memo/index.tsx            # 备忘列表
+│   ├── memo-edit/index.tsx       # 备忘编辑页
 │   ├── history/index.tsx         # 历史记录页
-│   └── settings/index.tsx        # 设置页
+│   ├── my-decisions/index.tsx    # 我的决策
+│   ├── settings/index.tsx        # 设置页
+│   └── appreciation/index.tsx    # 关于
 ├── components/                   # 可复用组件
 │   ├── SpinningWheel.tsx         # 转盘组件（核心）
-│   └── Screen.tsx                # 页面容器组件
+│   ├── Screen.tsx                # 页面容器组件
+│   └── ...                       # 其余 13 个组件（主题、引导、对话框等）
+├── contexts/                     # React Context
+│   ├── ThemeContext.tsx          # 主题与配色
+│   └── AuthContext.tsx           # 轻量用户态
 ├── data/                         # 数据层
-│   └── templates.ts              # 15 个预置场景模板
+│   ├── templates.ts              # 15 个预置场景模板
+│   └── templates.test.ts         # 数据契约守卫（8 条断言）
 ├── types/                        # 类型定义
 │   └── index.ts                  # TypeScript 类型
 ├── utils/                        # 工具函数
-│   └── storage.ts                # AsyncStorage 存储工具
-└── hooks/                        # 自定义 Hooks
-    └── useSafeRouter.ts          # 安全路由 Hook
+│   ├── storage.ts                # AsyncStorage 存储工具
+│   ├── sound.ts                  # 音效与触感
+│   ├── calendar.ts               # 日历提醒
+│   ├── dataExport.ts             # 数据导入导出
+│   └── errorHandler.ts           # 统一错误处理
+├── hooks/                        # 自定义 Hooks
+│   └── useSafeRouter.ts          # 安全路由 Hook
+└── android/                      # 原生工程（已入库）
 ```
 
 ---
@@ -82,6 +104,12 @@ interface HistoryRecord {
 |----------|------|------|
 | `@decision_custom` | 自定义决策列表 | 用户创建的决策 |
 | `@decision_history` | 历史记录列表 | 最多 100 条，超出覆盖最早的 |
+| `@decision_memos` | 备忘录列表 | 带标签的备忘 |
+| `@app_settings` | 应用设置 | 主题、引导等 |
+| `@decision_stats` | 决策统计 | 总次数与分类计数 |
+| `@memo_tags` | 备忘标签 | 标签集合 |
+| `@wheel_appearance` | 转盘外观 | 配色等 |
+| `@onboarding_completed` | 新手引导标记 | 是否已完成引导 |
 
 ---
 
@@ -198,6 +226,7 @@ const handleExclude = () => {
 | **学习工作** | 先做哪项工作 | 7 |
 | **聚会游戏** | 谁买单 | 6 |
 | **聚会游戏** | 真心话还是大冒险 | 8 |
+| **聚会游戏** | 狼人杀随机分职 | 12 |
 
 ---
 
@@ -215,23 +244,37 @@ const handleExclude = () => {
 
 ## 运行与调试
 
-### 启动服务
+### 安装依赖
+依赖只装在 `client/` 下：
+
 ```bash
-cd /workspace/projects
-bash .cozeproj/scripts/dev_build.sh
-bash .cozeproj/scripts/dev_run.sh
+npm ci --prefix client --ignore-scripts
 ```
 
-### 访问地址
-- Web 前端：http://localhost:5000
-- API 服务：http://localhost:9091
-
-### 静态检查
+### 启动开发服务器
 ```bash
-pnpm -w lint:client
+npm run start
 ```
+默认监听 http://localhost:8081。
+
+### 静态检查与测试
+```bash
+npm run lint     # tsc --noEmit + ESLint
+npm run test     # jest
+npm run build    # expo export --platform web，产物在 client/dist/
+```
+
+### 构建 Android APK
+```bash
+$env:JAVA_HOME = 'D:\jdk17'
+cd client/android
+.\gradlew.bat --version        # 硬前置
+.\gradlew.bat assembleRelease  # 产物在 client/android/app/build/outputs/apk/release/
+```
+> 仓库路径必须不含非 ASCII 字符，原因见 README「构建 Android APK」一节。
 
 ### 调试要点
 - 转盘动画：检查 `spinTrigger` 变化是否触发动画
 - 数据存储：检查 AsyncStorage 读写是否正常
 - 路由跳转：检查 `useSafeRouter` 参数传递是否正确
+- 音效：确认 `client/assets/sounds/` 的两个 mp3 已被打进包（离线播放）
